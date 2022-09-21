@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useState, useEffect } from "react";
+
 import {
   DefaultNodeModel,
   DiagramEngine,
@@ -10,33 +10,6 @@ import {
 import "./Basic.css";
 
 export const BasicConnection = () => {
-  const [nodes, setNodes] = useState([
-    {
-      id: "c1",
-      name: "Source",
-    },
-    {
-      id: "c2",
-      name: "Destination",
-    },
-  ]);
-  const [links, setLinks] = useState([{ start: "Node 1", end: "Node 2" }]);
-
-  useEffect(() => {
-    const run = async () => {
-      const { data } = await axios.post(
-        "http://localhost:4000/api/state/cache",
-        {
-          nodes,
-          links,
-        }
-      );
-      console.log("response from axios ", data);
-    };
-
-    run();
-  }, [links, nodes]);
-
   //1) setup the diagram engine
   const engine = new DiagramEngine();
   engine.installDefaultFactories();
@@ -46,12 +19,40 @@ export const BasicConnection = () => {
 
   //3-A) create a default node
   const node1 = new DefaultNodeModel("Source", "rgb(0,192,255)");
+  node1.addListener({
+    selectionChanged: (e) => console.log("select node change 1", e),
+  });
+  //3-B) create another default node
+  const node2 = new DefaultNodeModel("Destination", "rgb(192,255,0)");
+
+  node2.addListener({
+    selectionChanged: (e) => console.log("select node change 2", e),
+  });
+
+  const obj = {
+    componenets: [
+      { id: node1.id, name: node1.name },
+      { id: node2.id, name: node2.name },
+    ],
+    links: [
+      {
+        src: node1.id,
+        dest: node2.id,
+      },
+    ],
+  };
+
+  const run = async () => {
+    const { data } = await axios.post("http://localhost:4000/api/state/cache", {
+      obj,
+    });
+
+    console.log(data);
+  };
 
   let port1 = node1.addOutPort(" ");
   node1.setPosition(100, 100);
 
-  //3-B) create another default node
-  const node2 = new DefaultNodeModel("Destination", "rgb(192,255,0)");
   let port2 = node2.addInPort("Model");
 
   node2.setPosition(400, 100);
@@ -69,6 +70,7 @@ export const BasicConnection = () => {
 
   return (
     <>
+      <button onClick={run}>submit</button>
       <DiagramWidget className='srd-demo-canvas' diagramEngine={engine} />;
     </>
   );
